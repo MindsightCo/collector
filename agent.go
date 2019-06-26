@@ -5,13 +5,11 @@ import (
 
 	auth0grant "github.com/ereyes01/go-auth0-grant"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
 
 const (
-	CREDS_AUDIENCE     = "https://api.mindsight.io/"
-	DEFAULT_API_SERVER = "https://api.mindsight.io/query"
-	AUTH0_TOKEN_URL    = "https://mindsight.auth0.com/oauth/token/"
+	credsAudience = "https://api.mindsight.io/"
+	auth0TokenURL = "https://mindsight.auth0.com/oauth/token/"
 )
 
 func initGrant(c *Config) (*auth0grant.Grant, error) {
@@ -22,11 +20,11 @@ func initGrant(c *Config) (*auth0grant.Grant, error) {
 	credRequest := auth0grant.CredentialsRequest{
 		ClientID:     c.ClientID,
 		ClientSecret: c.ClientSecret,
-		Audience:     CREDS_AUDIENCE,
+		Audience:     credsAudience,
 		GrantType:    auth0grant.CLIENT_CREDS_GRANT_TYPE,
 	}
 
-	grant := auth0grant.NewGrant(AUTH0_TOKEN_URL, credRequest)
+	grant := auth0grant.NewGrant(auth0TokenURL, credRequest)
 
 	// test the token
 	if _, err := grant.GetAccessToken(); err != nil {
@@ -37,20 +35,6 @@ func initGrant(c *Config) (*auth0grant.Grant, error) {
 }
 
 func main() {
-	viper.SetConfigName("mindsight-agent")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/etc/mindsight/")
-
-	viper.SetEnvPrefix("mindsight")
-	viper.AutomaticEnv()
-
-	// loads viper config
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Println("(warning) Couldn't open config file:", err)
-	}
-
-	// builds my config object
 	config, err := ReadConfig()
 	if err != nil {
 		log.Fatal("error verifying config:", err)

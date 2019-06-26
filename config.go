@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 
 	"github.com/spf13/viper"
 )
@@ -20,6 +21,19 @@ type Config struct {
 // value was not provided, an error will be returned.
 func ReadConfig() (*Config, error) {
 	var c Config
+
+	viper.SetConfigName("mindsight-agent")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/mindsight/")
+
+	viper.SetEnvPrefix("mindsight")
+	viper.AutomaticEnv()
+
+	// loads viper config
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println("(warning) Couldn't open config file:", err)
+	}
 
 	c.Sources = viper.GetStringSlice("sources")
 	if len(c.Sources) == 0 {
