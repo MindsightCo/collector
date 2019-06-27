@@ -3,20 +3,15 @@ package main
 import (
 	"log"
 
+	"github.com/MindsightCo/metrics-agent/cache"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
 const defaultAPIServer = "https://sre-api.mindsight.io/metricsin/"
 
-type Source struct {
-	SourceID int `mapstructure:"source_id"`
-	URL      string
-	Queries  []string
-}
-
 type Config struct {
-	Sources      []Source
+	Sources      []cache.Source
 	ClientID     string `mapstructure:"client_id"`
 	ClientSecret string `mapstructure:"client_secret"`
 	APIServer    string `mapstructure:"api_server"`
