@@ -1,20 +1,26 @@
 package main
 
 import (
-	"errors"
 	"log"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
-const defaultAPIServer = "https://api.mindsight.io/query"
+const defaultAPIServer = "https://sre-api.mindsight.io/metricsin/"
+
+type Source struct {
+	SourceID int `mapstructure:"source_id"`
+	URL      string
+	Queries  []string
+}
 
 type Config struct {
-	Sources      []string
-	ClientID     string
-	ClientSecret string
-	APIServer    string
-	TestMode     bool
+	Sources      []Source
+	ClientID     string `mapstructure:"client_id"`
+	ClientSecret string `mapstructure:"client_secret"`
+	APIServer    string `mapstructure:"api_server"`
+	TestMode     bool   `mapstructure:"test_mode"`
 }
 
 // ReadConfig retrieves configuration values via viper. If a required
@@ -25,9 +31,12 @@ func ReadConfig() (*Config, error) {
 	viper.SetConfigName("mindsight-agent")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/mindsight/")
+	viper.SetConfigType("yaml")
 
 	viper.SetEnvPrefix("mindsight")
 	viper.AutomaticEnv()
+
+	viper.SetDefault("api_server", defaultAPIServer)
 
 	// loads viper config
 	err := viper.ReadInConfig()
@@ -35,27 +44,16 @@ func ReadConfig() (*Config, error) {
 		log.Println("(warning) Couldn't open config file:", err)
 	}
 
-	c.Sources = viper.GetStringSlice("sources")
-	if len(c.Sources) == 0 {
-		return nil, errors.New("must provide at least 1 metrics source url")
+	if err := viper.Unmarshal(&c); err != nil {
+		return nil, errors.Wrap(err, "unmarshal configuration")
 	}
 
-	c.ClientID = viper.GetString("client_id")
 	if c.ClientID == "" {
 		return nil, errors.New("env variable MINDSIGHT_CLIENT_ID (or config client_id) must be given")
 	}
-
-	c.ClientSecret = viper.GetString("client_secret")
 	if c.ClientSecret == "" {
 		return nil, errors.New("env variable MINDSIGHT_CLIENT_SECRET (or config client_secret) must be given")
 	}
-
-	c.APIServer = viper.GetString("api_server")
-	if c.APIServer == "" {
-		c.APIServer = defaultAPIServer
-	}
-
-	c.TestMode = viper.GetBool("test_mode")
 
 	return &c, nil
 }
