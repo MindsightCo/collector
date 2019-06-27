@@ -19,8 +19,15 @@ type Cache struct {
 }
 
 func (c *Cache) NewSources(sources []Source) (map[int]prommodel.Vector, error) {
+	conns := make(map[string]*promclient.PromClient)
+
 	sourcesCopy := append([]Source{}, sources...)
 	for idx, src := range sourcesCopy {
+		if client, present := conns[src.URL]; present {
+			sourcesCopy[idx].client = client
+			continue
+		}
+
 		client, err := promclient.NewPromClient(src.URL)
 		if err != nil {
 			// TODO: close all previous connections?
@@ -28,6 +35,7 @@ func (c *Cache) NewSources(sources []Source) (map[int]prommodel.Vector, error) {
 		}
 
 		sourcesCopy[idx].client = client
+		conns[src.URL] = client
 	}
 
 	prevValues := c.values

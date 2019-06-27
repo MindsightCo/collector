@@ -28,7 +28,11 @@ func TestNewSources(t *testing.T) {
 		values:  prevValues,
 	}
 
-	newSources := []Source{{SourceID: 3, URL: "a-url"}}
+	newSources := []Source{
+		{SourceID: 1, URL: "blah"},
+		{SourceID: 2, URL: "a-url"},
+		{SourceID: 3, URL: "a-url"},
+	}
 
 	values, err := c.NewSources(newSources)
 	if err != nil {
@@ -51,6 +55,10 @@ func TestNewSources(t *testing.T) {
 		if src.client == nil {
 			t.Fatal("found a source without a prometheus client:", src)
 		}
+	}
+
+	if c.sources[1].client != c.sources[2].client {
+		t.Fatal("src 1 and 2 have the same url but do not share the same client")
 	}
 }
 
