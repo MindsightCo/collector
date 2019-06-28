@@ -13,6 +13,14 @@ import (
 
 var epoch = prommodel.TimeFromUnix(10)
 
+func testNow() time.Time {
+	return epoch.Time()
+}
+
+func testNowElapsed() time.Time {
+	return epoch.Time().Add(10 * time.Minute)
+}
+
 func TestNewSources(t *testing.T) {
 	prevValues := map[int]prommodel.Vector{
 		23: prommodel.Vector{
@@ -29,6 +37,9 @@ func TestNewSources(t *testing.T) {
 	c := &Cache{
 		sources: []Source{{SourceID: 2}},
 		values:  prevValues,
+		nowFn:   testNow,
+		nCache:  1,
+		limit:   10,
 	}
 
 	newSources := []Source{
@@ -52,6 +63,12 @@ func TestNewSources(t *testing.T) {
 	}
 	if len(c.values) != 0 {
 		t.Fatal("unexpected values in cache after new sources:", c.values)
+	}
+	if c.nCache != 0 {
+		t.Fatal("cache was not flushed: ncache:", c.nCache)
+	}
+	if !c.lastFlush.Equal(epoch.Time()) {
+		t.Fatal("cache flush timestamp:", c.lastFlush.Format(time.RFC3339))
 	}
 
 	for _, src := range c.sources {
@@ -88,14 +105,6 @@ func cacheMustEqual(t *testing.T, c1, c2 Cache) {
 	if !c1.lastFlush.Equal(c2.lastFlush) {
 		t.Fatalf("cache lastFlush differs: %s vs %s\n", c1.lastFlush.Format(time.RFC3339), c2.lastFlush.Format(time.RFC3339))
 	}
-}
-
-func testNow() time.Time {
-	return epoch.Time()
-}
-
-func testNowElapsed() time.Time {
-	return epoch.Time().Add(10 * time.Minute)
 }
 
 type cacheTestCase struct {

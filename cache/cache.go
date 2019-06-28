@@ -29,6 +29,20 @@ type Cache struct {
 	nowFn         func() time.Time
 }
 
+func NewCache(sources []Source, size int, maxAge time.Duration) (*Cache, error) {
+	c := &Cache{
+		limit:     size,
+		timeLimit: maxAge,
+		nowFn:     time.Now,
+	}
+
+	if _, err := c.NewSources(sources); err != nil {
+		return nil, errors.Wrap(err, "new cache set sources")
+	}
+
+	return c, nil
+}
+
 func (c *Cache) NewSources(sources []Source) (map[int]prommodel.Vector, error) {
 	conns := make(map[string]*promclient.PromClient)
 
@@ -51,6 +65,8 @@ func (c *Cache) NewSources(sources []Source) (map[int]prommodel.Vector, error) {
 	prevValues := c.values
 	c.values = make(map[int]prommodel.Vector)
 	c.sources = sourcesCopy
+	c.nCache = 0
+	c.lastFlush = c.nowFn()
 
 	return prevValues, nil
 }
