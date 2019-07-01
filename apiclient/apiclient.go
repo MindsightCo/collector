@@ -54,24 +54,24 @@ type TokenBuilder interface {
 }
 
 type MetricsPusher struct {
-	url   string
-	grant TokenBuilder
+	url  string
+	auth TokenBuilder
 }
 
-func NewMetricsPusher(url string, grant TokenBuilder) (*MetricsPusher, error) {
+func NewMetricsPusher(url string, auth TokenBuilder) (*MetricsPusher, error) {
 	addr, err := newAPIAddr(url)
 	if err != nil {
 		return nil, err
 	}
 
 	return &MetricsPusher{
-		url:   addr.metricsAddr(),
-		grant: grant,
+		url:  addr.metricsAddr(),
+		auth: auth,
 	}, nil
 }
 
 func (p *MetricsPusher) Push(ctx context.Context, metrics map[int]prommodel.Vector) error {
-	token, err := p.grant.GetAccessToken()
+	token, err := p.auth.GetAccessToken()
 	if err != nil {
 		return errors.Wrap(err, "get access token:")
 	}
