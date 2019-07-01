@@ -164,15 +164,6 @@ func (c *Config) refreshSources(ctx context.Context) error {
 	return nil
 }
 
-// resetTimer according to the Timer docs' instructions.
-// https://golang.org/pkg/time/#Timer.Reset
-func resetTimer(t *time.Timer, d time.Duration) {
-	if !t.Stop() {
-		<-t.C
-	}
-	t.Reset(d)
-}
-
 func (c *Config) Loop() error {
 	if err := c.init(); err != nil {
 		return errors.Wrap(err, "init metrics collector")
@@ -188,7 +179,7 @@ func (c *Config) Loop() error {
 			if err := c.scrape(ctx); err != nil {
 				log.Println("WARNING (scrape):", err)
 			}
-			resetTimer(scrapeTimer, c.ScrapeInterval)
+			scrapeTimer.Reset(c.ScrapeInterval)
 
 		// TODO: instead of a timer, replace with a subscription notification
 		// from the API
@@ -196,7 +187,7 @@ func (c *Config) Loop() error {
 			if err := c.refreshSources(ctx); err != nil {
 				log.Println("WARNING (refreshSources):", err)
 			}
-			resetTimer(refreshSourcesTimer, c.RefreshSourcesInterval)
+			refreshSourcesTimer.Reset(c.RefreshSourcesInterval)
 		}
 	}
 
