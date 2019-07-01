@@ -10,26 +10,16 @@ import (
 )
 
 const (
-	defaultAPIServer  = "https://sre-api.mindsight.io/metricsin/"
+	defaultAPIServer  = "https://sre-api.mindsight.io/"
 	defaultCacheDepth = 1000
 	defaultCacheAge   = time.Minute * 5
 )
-
-type ApiAddr string
-
-func (a ApiAddr) QueryAddr() string {
-	return string(a) + "query"
-}
-
-func (a ApiAddr) MetricsAddr() string {
-	return string(a) + "metricsin/"
-}
 
 type Config struct {
 	Sources      []cache.Source
 	ClientID     string        `mapstructure:"client_id"`
 	ClientSecret string        `mapstructure:"client_secret"`
-	APIServer    ApiAddr       `mapstructure:"api_server"`
+	APIServer    string        `mapstructure:"api_server"`
 	TestMode     bool          `mapstructure:"test_mode"`
 	CacheAge     time.Duration `mapstructure:"cache_age"`
 	CacheDepth   int           `mapstructure:"cache_depth"`

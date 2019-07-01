@@ -1,13 +1,16 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/MindsightCo/metrics-agent/cache"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	prommodel "github.com/prometheus/common/model"
 )
 
@@ -89,20 +92,81 @@ func TestPushMetrics(t *testing.T) {
 
 	fixture.token.EXPECT().GetAccessToken().Return(testToken, nil)
 
-	pusher := &MetricsPusher{url: fixture.server.URL + "/metricsin/", grant: fixture.token}
+	pusher, err := NewMetricsPusher(fixture.server.URL, fixture.token)
+	if err != nil {
+		t.Fatal("new metrics pusher:", err)
+	}
+
 	if err := pusher.Push(metrics); err != nil {
 		t.Fatal("push metrics:", err)
 	}
 }
 
-func TestAPIClient(t *testing.T) {
-	// input: map[source-id]prometheus-vector
-	// expect: POST to metricsin/ route
+func TestRefreshSources(t *testing.T) {
+	sources := []cache.Source{
+		{
+			SourceID: 77,
+			URL:      "http://source-1",
+			Query:    "query{num=\"1\"}",
+		},
+		{
+			SourceID: 77,
+			URL:      "http://source-2",
+			Query:    "query{num=\"2\"}",
+		},
+	}
 
-	// input: query latest metric sources from graphql API
-	// expect: cache sources are replaced, flushed metrics POSTed to server
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/query" {
+			t.Fatalf("wrong path got: %s expected: /query", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "bearer "+testToken {
+			t.Fatalf("auth header got: ``%s'' expected: ``bearer %s''", r.Header.Get("Authorization"), testToken)
+		}
 
-	// TODO
-	// subscribe to API metric source changes (needs backend support)
-	// do test #2 above on metric source change
+		defer r.Body.Close()
+		var gqlRequest struct {
+			Query     string                 `json:"query"`
+			Variables map[string]interface{} `json:"variables"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&gqlRequest); err != nil {
+			t.Fatal("decode request body:", err)
+		}
+		if gqlRequest.Variables != nil {
+			t.Fatal("didn't expect any graphql variables")
+		}
+		if gqlRequest.Query != metricSourcesQuery {
+			t.Fatalf("graphql query got: ``%s'' expected: ``%s''", gqlRequest, metricSourcesQuery)
+		}
+
+		var resp struct {
+			Data   interface{} `json:"data"`
+			Errors error       `json:"errors"`
+		}
+		resp.Data = sources
+
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatal("encode sources response:", err)
+		}
+	}
+
+	fixture, tearDown := setup(t, handler)
+	defer tearDown(t)
+
+	fixture.token.EXPECT().GetAccessToken().Return(testToken, nil)
+
+	q, err := NewQueryer(fixture.server.URL, fixture.token)
+	if err != nil {
+		t.Fatal("new queryer:", err)
+	}
+
+	newSources, err := q.QuerySources(context.Background())
+	if err != nil {
+		t.Fatal("query sources:", err)
+	}
+	ign := cmpopts.IgnoreUnexported(cache.Source{})
+	if !cmp.Equal(sources, newSources, ign) {
+		t.Fatal("unexpected sources response:", ign)
+	}
 }
