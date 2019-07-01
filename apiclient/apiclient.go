@@ -70,7 +70,7 @@ func NewMetricsPusher(url string, grant TokenBuilder) (*MetricsPusher, error) {
 	}, nil
 }
 
-func (p *MetricsPusher) Push(metrics map[int]prommodel.Vector) error {
+func (p *MetricsPusher) Push(ctx context.Context, metrics map[int]prommodel.Vector) error {
 	token, err := p.grant.GetAccessToken()
 	if err != nil {
 		return errors.Wrap(err, "get access token:")
@@ -88,6 +88,7 @@ func (p *MetricsPusher) Push(metrics map[int]prommodel.Vector) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "bearer "+token)
 
+	req = req.WithContext(ctx)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "do http request")

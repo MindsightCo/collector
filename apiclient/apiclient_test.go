@@ -23,6 +23,7 @@ type testConfig struct {
 	nCalls  int
 	handler http.HandlerFunc
 	token   *MockTokenBuilder
+	ctx     context.Context
 }
 
 func (c *testConfig) handlerWrapper(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +33,14 @@ func (c *testConfig) handlerWrapper(w http.ResponseWriter, r *http.Request) {
 
 func setup(t *testing.T, h http.HandlerFunc) (*testConfig, func(*testing.T)) {
 	t.Helper()
-
-	c := &testConfig{handler: h}
-	c.server = httptest.NewServer(http.HandlerFunc(c.handlerWrapper))
-
 	ctl := gomock.NewController(t)
-	c.token = NewMockTokenBuilder(ctl)
+
+	c := &testConfig{
+		handler: h,
+		ctx:     context.WithValue(context.Background(), "MSTEST", "mstest"),
+		token:   NewMockTokenBuilder(ctl),
+	}
+	c.server = httptest.NewServer(http.HandlerFunc(c.handlerWrapper))
 
 	tearDown := func(t *testing.T) {
 		t.Helper()
@@ -97,7 +100,7 @@ func TestPushMetrics(t *testing.T) {
 		t.Fatal("new metrics pusher:", err)
 	}
 
-	if err := pusher.Push(metrics); err != nil {
+	if err := pusher.Push(fixture.ctx, metrics); err != nil {
 		t.Fatal("push metrics:", err)
 	}
 }
@@ -161,12 +164,12 @@ func TestRefreshSources(t *testing.T) {
 		t.Fatal("new queryer:", err)
 	}
 
-	newSources, err := q.QuerySources(context.Background())
+	newSources, err := q.QuerySources(fixture.ctx)
 	if err != nil {
 		t.Fatal("query sources:", err)
 	}
 	ign := cmpopts.IgnoreUnexported(cache.Source{})
 	if !cmp.Equal(sources, newSources, ign) {
-		t.Fatal("unexpected sources response:", ign)
+		t.Fatal("unexpected sources response:", cmp.Diff(sources, newSources, ign))
 	}
 }
