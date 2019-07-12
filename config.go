@@ -50,6 +50,10 @@ func ReadConfig() (*Config, error) {
 	viper.AddConfigPath("/etc/mindsight/")
 	viper.SetConfigType("yaml")
 
+	// BUG: workaround for https://github.com/spf13/viper/issues/688
+	viper.BindEnv("client_id", "MINDSIGHT_CLIENT_ID")
+	viper.BindEnv("client_secret", "MINDSIGHT_CLIENT_SECRET")
+
 	viper.SetEnvPrefix("mindsight")
 	viper.AutomaticEnv()
 
