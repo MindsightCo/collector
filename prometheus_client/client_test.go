@@ -43,7 +43,7 @@ func TestPrometheusClient(t *testing.T) {
 	defer ctl.Finish()
 
 	mockAPI := NewMockAPI(ctl)
-	mockAPI.EXPECT().Query(testCtx, testQuery, epoch.Time()).Return(expectedResult, nil)
+	mockAPI.EXPECT().Query(testCtx, testQuery, epoch.Time()).Return(expectedResult, nil, nil)
 
 	promClient := &PromClient{api: mockAPI, nowFn: testTime}
 	result, err := promClient.Query(testCtx, testQuery)

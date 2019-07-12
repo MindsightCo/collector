@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/MindsightCo/metrics-agent/cache"
+	"github.com/MindsightCo/collector/cache"
 	"github.com/machinebox/graphql"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"

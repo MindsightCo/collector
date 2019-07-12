@@ -13,4 +13,4 @@
 
 .*.sw[a-zA-Z]
 agent.env
-metrics-agent
+collector

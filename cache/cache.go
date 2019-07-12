@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	promclient "github.com/MindsightCo/metrics-agent/prometheus_client"
+	promclient "github.com/MindsightCo/collector/prometheus_client"
 	"github.com/pkg/errors"
 	prommodel "github.com/prometheus/common/model"
 )

@@ -37,7 +37,7 @@ func NewPromClient(url string) (*PromClient, error) {
 // CurrentSLO returns the service level (as a percentage) being provided by the
 // given org/app in the current time window.
 func (c *PromClient) Query(ctx context.Context, query string) (prommodel.Vector, error) {
-	result, err := c.api.Query(ctx, query, c.nowFn())
+	result, _, err := c.api.Query(ctx, query, c.nowFn())
 	if err != nil {
 		return nil, errors.Wrap(err, "query current slo")
 	}

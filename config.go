@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/MindsightCo/metrics-agent/apiclient"
-	"github.com/MindsightCo/metrics-agent/cache"
+	"github.com/MindsightCo/collector/apiclient"
+	"github.com/MindsightCo/collector/cache"
 	auth0grant "github.com/ereyes01/go-auth0-grant"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -190,7 +190,4 @@ func (c *Config) Loop() error {
 			refreshSourcesTimer.Reset(c.RefreshSourcesInterval)
 		}
 	}
-
-	// should never get here
-	return nil
 }
