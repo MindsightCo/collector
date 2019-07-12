@@ -104,9 +104,8 @@ func (p *MetricsPusher) Push(ctx context.Context, metrics map[int]prommodel.Vect
 }
 
 type Queryer struct {
-	client  *graphql.Client
-	request *graphql.Request
-	auth    TokenBuilder
+	client *graphql.Client
+	auth   TokenBuilder
 }
 
 const metricSourcesQuery = `{
@@ -124,12 +123,10 @@ func NewQueryer(url string, token TokenBuilder) (*Queryer, error) {
 	}
 
 	client := graphql.NewClient(serverURL.queryAddr())
-	request := graphql.NewRequest(metricSourcesQuery)
 
 	return &Queryer{
-		client:  client,
-		request: request,
-		auth:    token,
+		client: client,
+		auth:   token,
 	}, nil
 }
 
@@ -138,10 +135,12 @@ func (q *Queryer) QuerySources(ctx context.Context) ([]cache.Source, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "get auth token")
 	}
-	q.request.Header.Set("Authorization", "bearer "+authToken)
+
+	request := graphql.NewRequest(metricSourcesQuery)
+	request.Header.Set("Authorization", "bearer "+authToken)
 
 	var sources []cache.Source
-	if err := q.client.Run(ctx, q.request, &sources); err != nil {
+	if err := q.client.Run(ctx, request, &sources); err != nil {
 		return nil, errors.Wrap(err, "query new sources:")
 	}
 
