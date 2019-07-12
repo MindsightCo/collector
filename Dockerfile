@@ -1,8 +1,13 @@
-FROM golang:1.12.1 as builder
+FROM golang:1.12.7 as builder
 WORKDIR /go/src/github.com/MindsightCo/collector
-COPY . .
 
+# speed up the build by allowing docker to cache deps
+COPY go.mod .
+COPY go.sum .
 ENV GO111MODULE=on
+RUN go mod download
+
+COPY . .
 
 RUN go vet ./...
 RUN go test ./...
