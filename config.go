@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -28,7 +29,6 @@ type Config struct {
 	ClientID               string        `mapstructure:"client_id"`
 	ClientSecret           string        `mapstructure:"client_secret"`
 	APIServer              string        `mapstructure:"api_server"`
-	TestMode               bool          `mapstructure:"test_mode"`
 	CacheAge               time.Duration `mapstructure:"cache_age"`
 	CacheDepth             int           `mapstructure:"cache_depth"`
 	ScrapeInterval         time.Duration `mapstructure:"scrape_interval"`
@@ -53,6 +53,11 @@ func ReadConfig() (*Config, error) {
 	// BUG: workaround for https://github.com/spf13/viper/issues/688
 	viper.BindEnv("client_id", "MINDSIGHT_CLIENT_ID")
 	viper.BindEnv("client_secret", "MINDSIGHT_CLIENT_SECRET")
+	viper.BindEnv("api_server", "MINDSIGHT_API_SERVER")
+	viper.BindEnv("cache_age", "MINDSIGHT_CACHE_AGE")
+	viper.BindEnv("cache_depth", "MINDSIGHT_CACHE_DEPTH")
+	viper.BindEnv("scrape_interval", "MINDSIGHT_SCRAPE_INTERVAL")
+	viper.BindEnv("refresh_sources_interval", "MINDSIGHT_REFRESH_SOURCES_INTERVAL")
 
 	viper.SetEnvPrefix("mindsight")
 	viper.AutomaticEnv()
@@ -83,6 +88,24 @@ func ReadConfig() (*Config, error) {
 	return &c, nil
 }
 
+const strFmt = `
+client_id: %s
+client secret: XXXX
+api_server: %s
+cache_age: %s
+cache_depth: %d
+scrape_interval: %s
+refresh_sources_interval: %s
+`
+
+func (c *Config) String() string {
+	if c == nil {
+		return "<nil>"
+	}
+
+	return fmt.Sprintf(strFmt, c.ClientID, c.APIServer, c.CacheAge, c.CacheDepth, c.ScrapeInterval, c.RefreshSourcesInterval)
+}
+
 func (c *Config) initAuth() error {
 	credRequest := auth0grant.CredentialsRequest{
 		ClientID:     c.ClientID,
@@ -103,6 +126,8 @@ func (c *Config) initAuth() error {
 }
 
 func (c *Config) init() error {
+	log.Println(c.String())
+
 	if err := c.initAuth(); err != nil {
 		return errors.Wrap(err, "init auth")
 	}
