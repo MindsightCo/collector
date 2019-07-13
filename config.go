@@ -179,6 +179,11 @@ func (c *Config) refreshSources(ctx context.Context) error {
 		return errors.Wrap(err, "query sources")
 	}
 
+	log.Println("new metric sources:")
+	for _, src := range sources {
+		log.Printf("(id:%d) server:%s query:%s\n", src.SourceID, src.URL, src.Query)
+	}
+
 	data, err := c.cache.NewSources(sources)
 	if err != nil {
 		return errors.Wrap(err, "set new sources")
