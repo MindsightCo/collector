@@ -147,7 +147,9 @@ func TestRefreshSources(t *testing.T) {
 			Data   interface{} `json:"data"`
 			Errors error       `json:"errors"`
 		}
-		resp.Data = sources
+		resp.Data = map[string][]cache.Source{
+			"metricSources": sources,
+		}
 
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			t.Fatal("encode sources response:", err)

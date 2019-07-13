@@ -139,10 +139,10 @@ func (q *Queryer) QuerySources(ctx context.Context) ([]cache.Source, error) {
 	request := graphql.NewRequest(metricSourcesQuery)
 	request.Header.Set("Authorization", "bearer "+authToken)
 
-	var sources []cache.Source
-	if err := q.client.Run(ctx, request, &sources); err != nil {
+	var resp map[string][]cache.Source
+	if err := q.client.Run(ctx, request, &resp); err != nil {
 		return nil, errors.Wrap(err, "query new sources:")
 	}
 
-	return sources, nil
+	return resp["metricSources"], nil
 }
