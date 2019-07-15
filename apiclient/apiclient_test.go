@@ -105,8 +105,19 @@ func TestPushMetrics(t *testing.T) {
 	}
 }
 
+const sourcesJSON = `
+{
+	"data": {
+		"metricSources": [
+			{"id":77, "sourceURL": "http://source-1", "query":"query{num=\"1\"}"},
+			{"id":77, "sourceURL": "http://source-2", "query":"query{num=\"2\"}"}
+		]
+	}
+}
+`
+
 func TestRefreshSources(t *testing.T) {
-	sources := []cache.Source{
+	expSources := []cache.Source{
 		{
 			SourceID: 77,
 			URL:      "http://source-1",
@@ -143,16 +154,8 @@ func TestRefreshSources(t *testing.T) {
 			t.Fatalf("graphql query got: ``%s'' expected: ``%s''", gqlRequest, metricSourcesQuery)
 		}
 
-		var resp struct {
-			Data   interface{} `json:"data"`
-			Errors error       `json:"errors"`
-		}
-		resp.Data = map[string][]cache.Source{
-			"metricSources": sources,
-		}
-
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			t.Fatal("encode sources response:", err)
+		if _, err := w.Write([]byte(sourcesJSON)); err != nil {
+			t.Fatal("write sources response:", err)
 		}
 	}
 
@@ -171,7 +174,7 @@ func TestRefreshSources(t *testing.T) {
 		t.Fatal("query sources:", err)
 	}
 	ign := cmpopts.IgnoreUnexported(cache.Source{})
-	if !cmp.Equal(sources, newSources, ign) {
-		t.Fatal("unexpected sources response:", cmp.Diff(sources, newSources, ign))
+	if !cmp.Equal(expSources, newSources, ign) {
+		t.Fatal("unexpected sources response:", cmp.Diff(expSources, newSources, ign))
 	}
 }

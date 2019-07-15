@@ -14,9 +14,9 @@ type queryer interface {
 }
 
 type Source struct {
-	SourceID int `mapstructure:"source_id"`
-	URL      string
-	Query    string
+	SourceID int    `json:"id"`
+	URL      string `json:"sourceURL"`
+	Query    string `json:"query"`
 	client   queryer
 }
 
