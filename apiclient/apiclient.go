@@ -29,7 +29,7 @@ func newAPIAddr(serverURL string) (*apiAddr, error) {
 		return nil, err
 	}
 
-	metrics, err := url.Parse("metricsin/")
+	metrics, err := url.Parse("metrics/")
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +71,10 @@ func NewMetricsPusher(url string, auth TokenBuilder) (*MetricsPusher, error) {
 }
 
 func (p *MetricsPusher) Push(ctx context.Context, metrics map[int]prommodel.Vector) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
 	token, err := p.auth.GetAccessToken()
 	if err != nil {
 		return errors.Wrap(err, "get access token:")

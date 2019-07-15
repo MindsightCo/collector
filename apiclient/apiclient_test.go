@@ -31,7 +31,7 @@ func (c *testConfig) handlerWrapper(w http.ResponseWriter, r *http.Request) {
 	c.handler(w, r)
 }
 
-func setup(t *testing.T, h http.HandlerFunc) (*testConfig, func(*testing.T)) {
+func setup(t *testing.T, h http.HandlerFunc, nCalls int) (*testConfig, func(*testing.T)) {
 	t.Helper()
 	ctl := gomock.NewController(t)
 
@@ -47,33 +47,21 @@ func setup(t *testing.T, h http.HandlerFunc) (*testConfig, func(*testing.T)) {
 		ctl.Finish()
 
 		c.server.Close()
-		if c.nCalls != 1 {
-			t.Fatalf("unexpected number of calls got: %d expected: 1\n", c.nCalls)
+		if c.nCalls != nCalls {
+			t.Fatalf("unexpected number of calls got: %d expected: %d\n", c.nCalls, nCalls)
 		}
 	}
 
 	return c, tearDown
 }
 
-func TestPushMetrics(t *testing.T) {
-	metrics := map[int]prommodel.Vector{
-		1: prommodel.Vector{
-			&prommodel.Sample{
-				Timestamp: epoch,
-				Value:     prommodel.SampleValue(13.3),
-				Metric: prommodel.Metric{
-					"__name__": "joeblow",
-				},
-			},
-		},
-	}
-
-	handler := func(w http.ResponseWriter, r *http.Request) {
+func pushHandler(t *testing.T, expMetrics map[int]prommodel.Vector) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Fatalf("wrong method, got: %s expected: POST", r.Method)
 		}
-		if r.URL.Path != "/metricsin/" {
-			t.Fatalf("wrong path got: %s expected: /metricsin/", r.URL.Path)
+		if r.URL.Path != "/metrics/" {
+			t.Fatalf("wrong path got: %s expected: /metrics/", r.URL.Path)
 		}
 		if r.Header.Get("Content-type") != "application/json" {
 			t.Fatalf("unexpected mime type, got %s, wanted application/json", r.Header.Get("Content-type"))
@@ -85,23 +73,61 @@ func TestPushMetrics(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&metricsIn); err != nil {
 			t.Fatal("decode request body:", err)
 		}
-		if !cmp.Equal(metrics, metricsIn) {
-			t.Fatal("unexpected input:", cmp.Diff(metrics, metricsIn))
+		if !cmp.Equal(expMetrics, metricsIn) {
+			t.Fatal("unexpected input:", cmp.Diff(expMetrics, metricsIn))
 		}
 	}
+}
 
-	fixture, tearDown := setup(t, handler)
-	defer tearDown(t)
-
-	fixture.token.EXPECT().GetAccessToken().Return(testToken, nil)
-
-	pusher, err := NewMetricsPusher(fixture.server.URL, fixture.token)
-	if err != nil {
-		t.Fatal("new metrics pusher:", err)
+func TestPushMetrics(t *testing.T) {
+	var cases = []struct {
+		name        string
+		metrics     map[int]prommodel.Vector
+		nCalls      int
+		expectToken bool
+	}{
+		{
+			name: "Pushes a prometheus vector",
+			metrics: map[int]prommodel.Vector{
+				1: prommodel.Vector{
+					&prommodel.Sample{
+						Timestamp: epoch,
+						Value:     prommodel.SampleValue(13.3),
+						Metric: prommodel.Metric{
+							"__name__": "joeblow",
+						},
+					},
+				},
+			},
+			nCalls:      1,
+			expectToken: true,
+		},
+		{
+			name:        "Pushes empty data",
+			metrics:     map[int]prommodel.Vector{},
+			nCalls:      0,
+			expectToken: false,
+		},
 	}
 
-	if err := pusher.Push(fixture.ctx, metrics); err != nil {
-		t.Fatal("push metrics:", err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fixture, tearDown := setup(t, pushHandler(t, tc.metrics), tc.nCalls)
+			defer tearDown(t)
+
+			if tc.expectToken {
+				fixture.token.EXPECT().GetAccessToken().Return(testToken, nil)
+			}
+
+			pusher, err := NewMetricsPusher(fixture.server.URL, fixture.token)
+			if err != nil {
+				t.Fatal("new metrics pusher:", err)
+			}
+
+			if err := pusher.Push(fixture.ctx, tc.metrics); err != nil {
+				t.Fatal("push metrics:", err)
+			}
+		})
 	}
 }
 
@@ -159,7 +185,7 @@ func TestRefreshSources(t *testing.T) {
 		}
 	}
 
-	fixture, tearDown := setup(t, handler)
+	fixture, tearDown := setup(t, handler, 1)
 	defer tearDown(t)
 
 	fixture.token.EXPECT().GetAccessToken().Return(testToken, nil)
