@@ -34,12 +34,12 @@ func NewPromClient(url string) (*PromClient, error) {
 	}, nil
 }
 
-// CurrentSLO returns the service level (as a percentage) being provided by the
-// given org/app in the current time window.
+// Query executes the given PromQL query and returns the resulting instant vector,
+// or an error if one occurred.
 func (c *PromClient) Query(ctx context.Context, query string) (prommodel.Vector, error) {
 	result, _, err := c.api.Query(ctx, query, c.nowFn())
 	if err != nil {
-		return nil, errors.Wrap(err, "query current slo")
+		return nil, errors.Wrap(err, "execute prometheus query")
 	}
 
 	if result.Type() != prommodel.ValVector {
